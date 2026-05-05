@@ -1,0 +1,462 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Plus, 
+  Minus, 
+  X, 
+  Gamepad2, 
+  Building, 
+  CreditCard, 
+  QrCode, 
+  CheckCircle2, 
+  ArrowLeft,
+  Wifi,
+  Tv,
+  Key,
+  UtensilsCrossed,
+  Award,
+  Sparkles,
+  MapPin,
+  ChevronRight,
+  ShoppingBag
+} from 'lucide-react';
+
+const BASE_FOOD_MENU = [
+  { 
+    id: 1, 
+    name: 'Escargots de Bourgogne', 
+    price: 325000, 
+    category: 'Appetizer', 
+    description: 'Siput Prancis dengan mentega bawang putih harum dan remah roti herbal.', 
+    image: 'https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=800&q=80',
+    availableToppings: [{ name: 'Ekstra Truffle Oil', price: 45000 }, { name: 'Roti Brioche', price: 25000 }]
+  },
+  { 
+    id: 2, 
+    name: 'Wagyu Beef Rossini', 
+    price: 1850000, 
+    category: 'Main Course', 
+    description: 'Wagyu A5 dengan Foie Gras panggang dan saus Madeira yang kaya rasa.', 
+    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    availableToppings: [{ name: 'Irisan Black Truffle', price: 150000 }, { name: 'Ekstra Foie Gras', price: 250000 }]
+  },
+  { 
+    id: 3, 
+    name: 'Homard Thermidor', 
+    price: 1250000, 
+    category: 'Main Course', 
+    description: 'Lobster utuh dengan saus krim kuning telur, keju Gruyère, dan aroma Cognac.', 
+    image: 'https://images.unsplash.com/photo-1553247407-23251cecca19?auto=format&fit=crop&w=800&q=80',
+    availableToppings: [{ name: 'Nasi Saffron', price: 55000 }]
+  },
+  { 
+    id: 4, 
+    name: 'Grand Marnier Soufflé', 
+    price: 245000, 
+    category: 'Dessert', 
+    description: 'Soufflé lembut klasik dengan jeruk Grand Marnier dan vla vanila premium.', 
+    image: 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=800&q=80',
+    availableToppings: [{ name: 'Vanilla Bean Gelato', price: 40000 }]
+  }
+];
+
+const GAMING_EXCLUSIVES = [
+  {
+    id: 101,
+    name: 'Truffle Gaming Sliders',
+    price: 450000,
+    category: 'Gaming Lounge',
+    description: 'Mini burger wagyu dengan keju Gruyère dan mayo truffle.',
+    image: 'https://images.unsplash.com/photo-1550317138-10000687ad32?auto=format&fit=crop&w=800&q=80',
+    availableToppings: [{ name: 'Gold Leaf Flakes', price: 85000 }]
+  }
+];
+
+const BILLIARD_EXCLUSIVES = [
+  {
+    id: 201,
+    name: 'Vintage Champagne Flight',
+    price: 2800000,
+    category: 'Billiard Club',
+    description: 'Tiga pilihan Champagne Dom Pérignon terbaik.',
+    image: 'https://images.unsplash.com/photo-1594411135400-302381289115?auto=format&fit=crop&w=800&q=80',
+    availableToppings: [{ name: 'Beluga Caviar Side', price: 1200000 }]
+  }
+];
+
+const ADS_DATA = [
+  {
+    id: 1,
+    title: "Cita Rasa Prancis",
+    subtitle: "Makan malam romantis dengan 7 pilihan hidangan terbaik.",
+    highlight: "REKOMENDASI CHEF",
+    image: "https://images.unsplash.com/photo-1550966841-3ee37379738d?auto=format&fit=crop&w=1600&q=80",
+    color: "from-amber-900"
+  },
+  {
+    id: 2,
+    title: "Wine Premium",
+    subtitle: "Pilihan Bordeaux 1982 eksklusif di wine cellar kami.",
+    highlight: "EDISI TERBATAS",
+    image: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1600&q=80",
+    color: "from-blue-900"
+  }
+];
+
+const ROOMS = [
+  { id: 'hall', name: 'Main Dining Hall', icon: <UtensilsCrossed size={18}/>, fee: 0, subTitle: "Suasana Mewah Area Utama" },
+  { id: 'vip', name: 'Le Salon Privé', icon: <Tv size={18}/>, fee: 1500000, subTitle: "Billiard & Cigar Lounge" },
+  { id: 'arcade', name: 'L\'Atelier Gaming', icon: <Gamepad2 size={18}/>, fee: 500000, subTitle: "Eksklusif Gaming Lounge" },
+];
+
+const PAYMENTS = [
+  { id: 'qris', name: 'QRIS Priority', icon: <QrCode size={18}/> },
+  { id: 'bca', name: 'Transfer BCA', icon: <Building size={18}/> },
+  { id: 'cc', name: 'Kartu Kredit / Amex', icon: <CreditCard size={18}/> },
+];
+
+export default function App() {
+  const [page, setPage] = useState('login');
+  const [userName, setUserName] = useState('');
+  const [table, setTable] = useState('');
+  const [room, setRoom] = useState(ROOMS[0]);
+  const [cart, setCart] = useState({});
+  const [activeTab, setActiveTab] = useState('Semua');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [tempToppings, setTempToppings] = useState([]);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null);
+  const [adIndex, setAdIndex] = useState(0);
+
+  const WIFI_NAME = "ResToGo-Guest";
+  const WIFI_PASS = "ROYAL-GUEST-2024";
+
+  const [fullMenu, setFullMenu] = useState(BASE_FOOD_MENU);
+
+  useEffect(() => {
+    let combined = [...BASE_FOOD_MENU];
+    if (room.id === 'arcade') combined = [...combined, ...GAMING_EXCLUSIVES];
+    if (room.id === 'vip') combined = [...combined, ...BILLIARD_EXCLUSIVES];
+    setFullMenu(combined);
+  }, [room]);
+
+  useEffect(() => {
+    if (page === 'menu') {
+      const interval = setInterval(() => setAdIndex(prev => (prev + 1) % ADS_DATA.length), 6000);
+      return () => clearInterval(interval);
+    }
+  }, [page]);
+
+  const subtotal = Object.values(cart).reduce((acc, item) => acc + (item.totalPrice * item.quantity), 0);
+  const tax = (subtotal + room.fee) * 0.15;
+  const total = subtotal + room.fee + tax;
+
+  const toggleTopping = (top) => {
+    setTempToppings(prev => 
+      prev.find(t => t.name === top.name) 
+        ? prev.filter(t => t.name !== top.name)
+        : [...prev, top]
+    );
+  };
+
+  const confirmAddToCart = () => {
+    const toppingTotal = tempToppings.reduce((a, b) => a + b.price, 0);
+    const cartId = `${selectedItem.id}-${tempToppings.map(t => t.name).join('-')}`;
+    setCart(prev => ({
+      ...prev,
+      [cartId]: {
+        ...selectedItem,
+        toppings: tempToppings,
+        totalPrice: selectedItem.price + toppingTotal,
+        quantity: (prev[cartId]?.quantity || 0) + 1
+      }
+    }));
+    setSelectedItem(null);
+    setTempToppings([]);
+  };
+
+  const categories = ['Semua', ...new Set(fullMenu.map(m => m.category))];
+  const filteredMenu = activeTab === 'Semua' ? fullMenu : fullMenu.filter(m => m.category === activeTab);
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-[#f0f0f0] font-body selection:bg-amber-600 overflow-x-hidden">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;600&display=swap');
+        .font-heading { font-family: 'Playfair Display', serif; }
+        .font-body { font-family: 'Montserrat', sans-serif; }
+        .text-gold { color: #d4af37; }
+        .bg-gold { background: linear-gradient(135deg, #d4af37 0%, #f9d976 50%, #d4af37 100%); }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .page-transition { animation: fadeUp 0.6s ease-out; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* MODAL DETAIL ITEM - RESPONSIVE */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-sm">
+          <div className="glass w-full max-w-xl rounded-t-[2.5rem] sm:rounded-[3rem] overflow-hidden border-white/10 shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="h-60 sm:h-72 relative">
+              <img src={selectedItem.image} className="w-full h-full object-cover" alt={selectedItem.name} />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] to-transparent"></div>
+              <button onClick={() => { setSelectedItem(null); setTempToppings([]); }} className="absolute top-6 right-6 w-10 h-10 glass rounded-full flex items-center justify-center"><X size={20}/></button>
+            </div>
+            <div className="p-8 sm:p-10">
+              <div className="flex flex-col sm:flex-row sm:justify-between items-start mb-4 gap-2">
+                <h3 className="font-heading text-2xl sm:text-3xl leading-tight">{selectedItem.name}</h3>
+                <p className="text-gold font-heading text-xl sm:text-2xl">IDR {selectedItem.price.toLocaleString('id-ID')}</p>
+              </div>
+              <p className="text-white/40 italic text-sm mb-6 font-light">"{selectedItem.description}"</p>
+              
+              <div className="mb-8">
+                <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em] mb-4">Tambahan</p>
+                <div className="grid grid-cols-1 gap-3">
+                  {selectedItem.availableToppings?.map(t => (
+                    <button key={t.name} onClick={() => toggleTopping(t)} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${tempToppings.find(tt => tt.name === t.name) ? 'border-gold bg-gold/5' : 'border-white/5 bg-white/5'}`}>
+                      <span className="text-xs uppercase font-medium">{t.name}</span>
+                      <span className="text-xs text-gold">+{t.price > 0 ? `IDR ${t.price.toLocaleString('id-ID')}` : 'Free'}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <button onClick={confirmAddToCart} className="w-full bg-gold py-5 rounded-2xl font-heading text-xl text-black shadow-xl mb-4">
+                Pesan Sekarang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LOGIN PAGE */}
+      {page === 'login' && (
+        <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden page-transition">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80')] bg-cover bg-center opacity-10"></div>
+          
+          <div className="relative z-10 w-full max-w-md text-center">
+            <div className="mb-8 sm:mb-12">
+               <Award size={40} className="text-gold mx-auto mb-4" />
+               <h1 className="font-heading text-5xl sm:text-7xl mb-1 tracking-tighter">ResToGo</h1>
+               <h2 className="text-[9px] uppercase tracking-[0.5em] text-gold font-light">Luxury Dining Experience</h2>
+            </div>
+
+            <div className="glass p-6 sm:p-10 rounded-[2.5rem] text-left border-white/5 shadow-2xl">
+              <div className="mb-6">
+                <label className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] mb-2 block">Nama Tamu</label>
+                <input type="text" placeholder="Masukkan Nama" className="w-full bg-white/5 border-b border-white/10 p-3 outline-none focus:border-gold transition-all text-base placeholder:text-white/10" value={userName} onChange={e => setUserName(e.target.value)} />
+              </div>
+
+              <div className="mb-8">
+                <label className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] mb-4 block">Area Meja</label>
+                <div className="space-y-3">
+                  {ROOMS.map(r => (
+                    <button key={r.id} onClick={() => setRoom(r)} className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${room.id === r.id ? 'border-gold bg-gold/5' : 'border-white/5 opacity-40'}`}>
+                      <div className="flex items-center gap-4">
+                        <div className="text-gold">{r.icon}</div>
+                        <div className="text-left">
+                          <p className="text-[10px] font-bold uppercase tracking-widest">{r.name}</p>
+                          <p className="text-[8px] font-light text-white/40 uppercase">{r.subTitle}</p>
+                        </div>
+                      </div>
+                      {room.id === r.id && <div className="w-2 h-2 rounded-full bg-gold animate-pulse"></div>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <label className="text-[9px] font-bold text-white/40 uppercase tracking-[0.3em] mb-4 block">Nomor Meja</label>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                  {[...Array(10)].map((_, i) => (
+                    <button key={i} onClick={() => setTable(String(i + 1))} className={`min-w-[45px] h-[45px] rounded-xl text-sm font-bold transition-all border flex items-center justify-center shrink-0 ${table === String(i + 1) ? 'bg-gold text-black border-gold' : 'border-white/5 text-white/20'}`}>{i + 1}</button>
+                  ))}
+                </div>
+              </div>
+
+              <button onClick={() => setPage('menu')} disabled={!userName || !table} className="w-full bg-gold py-5 rounded-2xl font-heading text-lg text-black shadow-lg disabled:opacity-20 active:scale-95 transition-all">Masuk Ke Menu</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MENU PAGE */}
+      {page === 'menu' && (
+        <div className="pb-32 page-transition">
+          {/* HERO SLIDER - MOBILE OPTIMIZED */}
+          <div className="relative h-[60vh] sm:h-[70vh] overflow-hidden">
+            <div className="absolute inset-0">
+              <img key={ADS_DATA[adIndex].image} src={ADS_DATA[adIndex].image} className="w-full h-full object-cover brightness-[0.4]" alt="Promo" />
+              <div className={`absolute inset-0 bg-gradient-to-t ${ADS_DATA[adIndex].color} via-[#0a0a0a]/90 to-transparent opacity-80`}></div>
+            </div>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+              <span className="text-[9px] uppercase tracking-[0.4em] font-bold text-white/60 mb-4">{ADS_DATA[adIndex].highlight}</span>
+              <h2 className="font-heading text-5xl sm:text-8xl mb-4 italic leading-tight">{ADS_DATA[adIndex].title}</h2>
+              <p className="text-[10px] sm:text-xs font-light uppercase tracking-[0.3em] max-w-xs border-y border-white/20 py-4 px-4">{ADS_DATA[adIndex].subtitle}</p>
+            </div>
+
+            <button onClick={() => setPage('login')} className="absolute top-6 left-6 w-10 h-10 glass rounded-full flex items-center justify-center"><ArrowLeft size={18}/></button>
+            <div className="absolute top-6 right-6 glass px-4 py-2 rounded-full text-[8px] font-bold uppercase tracking-widest text-gold border-gold/30">#{table}</div>
+          </div>
+
+          <div className="px-4 sm:px-8 -mt-10 relative z-10">
+            {/* CATEGORIES - SCROLLABLE */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-8">
+              {categories.map(cat => (
+                <button key={cat} onClick={() => setActiveTab(cat)} className={`px-8 py-3 rounded-full text-[9px] font-bold uppercase tracking-widest whitespace-nowrap border ${activeTab === cat ? 'bg-gold text-black border-gold shadow-lg' : 'glass text-white/30 border-white/5'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* MENU GRID - ADAPTIVE */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filteredMenu.map(item => (
+                <div key={item.id} className="glass rounded-[2rem] p-4 flex flex-col cursor-pointer active:scale-[0.98] transition-transform" onClick={() => setSelectedItem(item)}>
+                  <div className="h-64 sm:h-80 rounded-[1.5rem] overflow-hidden mb-4 relative">
+                    <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
+                    <div className="absolute bottom-4 left-4 font-heading text-2xl drop-shadow-md">IDR {item.price.toLocaleString('id-ID')}</div>
+                  </div>
+                  <h4 className="font-heading text-xl mb-1 line-clamp-1">{item.name}</h4>
+                  <p className="text-[10px] text-white/30 italic line-clamp-2 mb-4 leading-relaxed font-light">"{item.description}"</p>
+                  <button className="w-full bg-white/5 py-4 rounded-xl text-[9px] font-bold uppercase tracking-widest border border-white/5">Pesan</button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* FLOATING CART */}
+          {Object.keys(cart).length > 0 && (
+            <div className="fixed bottom-6 left-4 right-4 z-50">
+              <button onClick={() => setPage('checkout')} className="w-full glass p-4 rounded-full flex items-center justify-between border-gold shadow-2xl ring-1 ring-gold/20">
+                <div className="flex items-center gap-4 pl-2">
+                  <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center font-heading text-xl text-black">{Object.values(cart).reduce((a,b)=>a+b.quantity,0)}</div>
+                  <div className="text-left">
+                    <p className="text-[8px] font-bold text-gold uppercase tracking-widest mb-0.5">Total</p>
+                    <p className="font-heading text-lg">IDR {total.toLocaleString('id-ID')}</p>
+                  </div>
+                </div>
+                <div className="bg-gold px-8 py-4 rounded-full text-black font-heading text-sm">Check Out</div>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CHECKOUT PAGE */}
+      {page === 'checkout' && (
+        <div className="min-h-screen p-6 sm:p-12 page-transition">
+          <div className="max-w-4xl mx-auto">
+            <button onClick={() => setPage('menu')} className="mb-8 flex items-center gap-2 text-white/30 text-[10px] font-bold uppercase tracking-widest"><ArrowLeft size={16}/> Kembali</button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div>
+                <h3 className="font-heading text-4xl mb-8">Keranjang</h3>
+                <div className="space-y-6 mb-8 max-h-[40vh] overflow-y-auto pr-2 no-scrollbar">
+                  {Object.entries(cart).map(([id, item]) => (
+                    <div key={id} className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-heading text-lg leading-none mb-2">{item.quantity}x {item.name}</p>
+                        {item.toppings?.length > 0 && (
+                          <p className="text-[8px] text-gold uppercase tracking-widest mb-2">+ {item.toppings.map(t=>t.name).join(', ')}</p>
+                        )}
+                        <div className="flex items-center gap-4 mt-2">
+                          <button onClick={() => {
+                            setCart(prev => {
+                              const newCart = { ...prev };
+                              if (newCart[id].quantity > 1) newCart[id].quantity--;
+                              else delete newCart[id];
+                              return newCart;
+                            });
+                          }} className="text-white/20 hover:text-red-400"><Minus size={14}/></button>
+                          <button onClick={() => {
+                            setCart(prev => ({ ...prev, [id]: { ...prev[id], quantity: prev[id].quantity + 1 } }));
+                          }} className="text-white/20 hover:text-green-400"><Plus size={14}/></button>
+                        </div>
+                      </div>
+                      <p className="font-heading text-lg">IDR {(item.totalPrice * item.quantity).toLocaleString('id-ID')}</p>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="space-y-4 pt-6 border-t border-white/5">
+                  <div className="flex justify-between text-[9px] text-white/30 uppercase">
+                    <span>Pajak & Servis (15%)</span>
+                    <span>IDR {tax.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between text-3xl font-heading text-gold pt-4 border-t border-white/10">
+                    <span>Total</span>
+                    <span>IDR {total.toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-heading text-4xl mb-8">Pembayaran</h3>
+                <div className="space-y-3 mb-8">
+                  {PAYMENTS.map(p => (
+                    <button key={p.id} onClick={() => setPaymentMethod(p)} className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${paymentMethod?.id === p.id ? 'border-gold bg-gold/5' : 'border-white/5 opacity-40'}`}>
+                      <div className="flex items-center gap-4">
+                        <div className={paymentMethod?.id === p.id ? 'text-gold' : 'text-white/20'}>{p.icon}</div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{p.name}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setShowPayment(true)} disabled={!paymentMethod} className="w-full bg-gold py-6 rounded-2xl text-black font-heading text-2xl shadow-lg disabled:opacity-10 active:scale-95 transition-all">Bayar Sekarang</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR MODAL */}
+      {showPayment && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/98 backdrop-blur-xl animate-in zoom-in duration-500">
+          <div className="glass w-full max-w-sm rounded-[3rem] p-8 text-center border-white/10">
+            <h4 className="font-heading text-3xl mb-8">Scan QRIS</h4>
+            <div className="bg-white p-8 rounded-[2rem] mb-8">
+              <QrCode size={200} className="mx-auto text-[#0a0a0a]" />
+            </div>
+            <p className="font-heading text-2xl text-gold mb-8 italic">IDR {total.toLocaleString('id-ID')}</p>
+            <button onClick={() => { setPage('success'); setShowPayment(false); }} className="w-full bg-gold py-5 rounded-full text-black font-heading text-xl">Selesai Membayar</button>
+          </div>
+        </div>
+      )}
+
+      {/* SUCCESS PAGE */}
+      {page === 'success' && (
+        <div className="min-h-screen flex items-center justify-center p-4 page-transition">
+          <div className="glass w-full max-w-sm rounded-[3rem] p-10 text-center border-t-8 border-gold shadow-2xl">
+            <CheckCircle2 size={48} className="text-gold mx-auto mb-6 animate-in zoom-in duration-700" />
+            <h2 className="font-heading text-4xl mb-2 italic">Merci Beaucoup</h2>
+            <p className="text-[9px] uppercase tracking-[0.4em] text-gold/60 mb-10 font-bold">Pesanan Sedang Diproses</p>
+            
+            <div className="bg-white/[0.03] rounded-3xl p-6 border border-white/5 mb-8 text-left">
+               <div className="flex items-center gap-2 mb-4">
+                 <Wifi size={14} className="text-gold" />
+                 <span className="text-[9px] font-bold uppercase tracking-widest text-white/40">WiFi Akses</span>
+               </div>
+               <div className="space-y-3">
+                  <div>
+                    <p className="text-[8px] text-white/20 uppercase mb-1">SSID</p>
+                    <p className="font-heading text-xl text-white tracking-widest">{WIFI_NAME}</p>
+                  </div>
+                  <div className="pt-3 border-t border-white/5">
+                    <p className="text-[8px] text-white/20 uppercase mb-1">Pass</p>
+                    <p className="font-heading text-xl text-gold tracking-widest">{WIFI_PASS}</p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 mb-10 opacity-40">
+               <MapPin size={14} className="text-gold" />
+               <span className="text-[10px] uppercase tracking-widest font-light">Table #{table}</span>
+            </div>
+
+            <button onClick={() => { setCart({}); setPage('login'); }} className="w-full glass py-5 rounded-full text-[9px] font-bold uppercase tracking-widest">Kembali</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
