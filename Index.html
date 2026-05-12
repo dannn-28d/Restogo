@@ -1,0 +1,401 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ShoppingCart, X, ChevronRight, CheckCircle2, QrCode,
+  Star, Smartphone, ChevronDown, Building2, Bell,
+  ChefHat, Timer, UtensilsCrossed, Info, Coffee,
+  Search, MessageSquare, ArrowRight, Flame, History, Languages, Zap,
+  Clock
+} from 'lucide-react';
+
+// --- TRANSLATIONS ---
+const translations = {
+  ID: {
+    welcome: "Selamat Datang",
+    search: "Cari menu favoritmu...",
+    categories: "Kategori",
+    addToOrder: "Tambah Pesanan",
+    specialRequest: "Permintaan Khusus",
+    pairing: "Rekomendasi Minuman",
+    billSummary: "Ringkasan Tagihan",
+    grandTotal: "Total Akhir",
+    payNow: "Bayar Sekarang",
+    history: "Riwayat Pesanan",
+    eta: "Estimasi Tiba",
+    back: "Kembali",
+    paymentMethod: "Metode Pembayaran",
+    chooseMethod: "Pilih Metode",
+    cookingStatus: "Pesanan Sedang Disiapkan"
+  },
+  EN: {
+    welcome: "Welcome",
+    search: "Search your favorite dish...",
+    categories: "Categories",
+    addToOrder: "Add to Order",
+    specialRequest: "Special Request",
+    pairing: "Drink Pairing",
+    billSummary: "Bill Summary",
+    grandTotal: "Grand Total",
+    payNow: "Pay Now",
+    history: "Order History",
+    eta: "Estimated Arrival",
+    back: "Back",
+    paymentMethod: "Payment Method",
+    chooseMethod: "Choose Method",
+    cookingStatus: "Your Order is Being Prepared"
+  }
+};
+
+const MENU_DATA = [
+  { id: 1, name: "Wagyu A5 Sirloin", category: "Main Course", price: 1250000, rating: 4.9, image: "https://images.unsplash.com/photo-1546241072-48010ad28c2c?w=800&q=80", description: "Daging Wagyu grade A5 asli dari Kagoshima dengan teknik charcoal sear.", pairing: "Espresso Martini" },
+  { id: 2, name: "Black Truffle Risotto", category: "Main Course", price: 450000, rating: 4.8, image: "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=800&q=80", description: "Risotto creamy dimasak perlahan dengan kaldu jamur hutan.", pairing: "Iced Caramel Macchiato" },
+  { id: 3, name: "Lobster Bisque", category: "Appetizer", price: 275000, rating: 4.7, image: "https://images.unsplash.com/photo-1510626176961-4b57d4fbad03?w=800&q=80", description: "Sup krim lobster kental dengan brandy.", pairing: "Yuzu Sorbet" },
+  { id: 5, name: "Espresso Martini", category: "Beverage", price: 155000, rating: 4.9, image: "https://images.unsplash.com/photo-1544145945-f904253d0c7b?w=800&q=80", description: "Kopi arabika premium, vodka artisan, dan sirup vanila.", pairing: "Tiramisu" },
+  { id: 7, name: "Tiramisu de Roma", category: "Dessert", price: 185000, rating: 5.0, image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&q=80", description: "Kue keju khas Italia dengan aroma kopi kental.", pairing: "Espresso Martini" },
+  { id: 9, name: "Yuzu Sorbet", category: "Dessert", price: 95000, rating: 4.5, image: "https://images.unsplash.com/photo-1505394033323-4241ad69d455?w=800&q=80", description: "Sorbet jeruk Yuzu Jepang yang menyegarkan.", pairing: "Espresso Martini" },
+  { id: 10, name: "Iced Caramel Macchiato", category: "Beverage", price: 85000, rating: 4.6, image: "https://images.unsplash.com/photo-1485808191679-5f86510681a2?w=800&q=80", description: "Kopi susu dengan lapisan sirup karamel bakar.", pairing: "Tiramisu de Roma" }
+];
+
+const PAYMENT_CATEGORIES = [
+  { id: 'qris', name: 'QRIS (Bayar Instan)', icon: <QrCode className="w-5 h-5" />, color: 'bg-indigo-600', options: [{ id: 'qris_all', name: 'Semua E-Wallet / Bank', useQRIS: true }] },
+  { id: 'ewallet', name: 'E-Wallet', icon: <Smartphone className="w-5 h-5" />, color: 'bg-emerald-600', options: [{ id: 'dana', name: 'DANA', useQRIS: true }, { id: 'ovo', name: 'OVO', useQRIS: true }, { id: 'gopay', name: 'GoPay', useQRIS: true }] },
+  { id: 'bank', name: 'Bank Transfer', icon: <Building2 className="w-5 h-5" />, color: 'bg-blue-600', options: [{ id: 'bca', name: 'Bank BCA' }, { id: 'mandiri', name: 'Bank Mandiri' }, { id: 'bri', name: 'Bank BRI' }] }
+];
+
+export default function App() {
+  const [view, setView] = useState('login'); 
+  const [userName, setUserName] = useState('');
+  const [tableNumber, setTableNumber] = useState('');
+  const [lang, setLang] = useState('ID');
+  const [cart, setCart] = useState([]);
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [specialNote, setSpecialNote] = useState('');
+  const [eta, setEta] = useState(15);
+  const [orderStep, setOrderStep] = useState(0);
+
+  const t = translations[lang];
+
+  // Logic Search
+  const filteredMenu = useMemo(() => {
+    return MENU_DATA.filter(item => {
+      const matchSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchCat = activeCategory === 'All' || item.category === activeCategory;
+      return matchSearch && matchCat;
+    });
+  }, [searchQuery, activeCategory]);
+
+  const totalPayment = useMemo(() => cart.reduce((acc, curr) => acc + (curr.price * curr.qty), 0), [cart]);
+
+  // ETA Timer Logic
+  useEffect(() => {
+    let timer;
+    if (view === 'success' && eta > 0) {
+      timer = setInterval(() => setEta(prev => prev - 1), 60000);
+    }
+    return () => clearInterval(timer);
+  }, [view, eta]);
+
+  // Progress Step Logic
+  useEffect(() => {
+    let stepTimer;
+    if (view === 'success' && orderStep < 2) {
+      stepTimer = setTimeout(() => setOrderStep(prev => prev + 1), 5000);
+    }
+    return () => clearTimeout(stepTimer);
+  }, [view, orderStep]);
+
+  const addToCart = (item) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.id === item.id);
+      if (existing) return prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1, note: specialNote || i.note } : i);
+      return [...prev, { ...item, qty: 1, note: specialNote }];
+    });
+    setSelectedItem(null);
+    setSpecialNote('');
+  };
+
+  const handleCheckout = () => {
+    const newOrder = {
+      id: Date.now(),
+      items: [...cart],
+      total: totalPayment * 1.11,
+      time: new Date().toLocaleTimeString(),
+      status: 'In Progress'
+    };
+    setOrderHistory([newOrder, ...orderHistory]);
+    setView('success');
+  };
+
+  return (
+    <div className="min-h-screen bg-[#05080f] text-slate-200 font-sans selection:bg-[#fbbf24] selection:text-black">
+      <AnimatePresence mode="wait">
+        
+        {/* LOGIN - GRID KURSI/MEJA */}
+        {view === 'login' && (
+          <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#05080f] to-[#05080f]">
+            <div className="bg-[#0f172a] p-10 rounded-[3.5rem] w-full max-w-md border border-white/5 shadow-2xl">
+              <div className="text-center mb-10">
+                <Star className="w-12 h-12 text-[#fbbf24] mx-auto mb-4 fill-current" />
+                <h1 className="text-3xl font-serif tracking-[0.3em] text-white uppercase">The Azure</h1>
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[9px] uppercase tracking-widest text-slate-500 mb-2 block font-bold text-center">Nama Tamu</label>
+                  <input value={userName} onChange={(e) => setUserName(e.target.value)} className="w-full bg-black/40 border border-slate-800 p-4 rounded-2xl text-white outline-none focus:border-[#fbbf24] text-center" placeholder="Nama Anda" />
+                </div>
+                <div>
+                  <label className="text-[9px] uppercase tracking-widest text-slate-500 mb-3 block font-bold text-center">Pilih Meja (1 - 20)</label>
+                  <div className="grid grid-cols-5 gap-2 max-h-32 overflow-y-auto pr-2 scrollbar-hide">
+                    {[...Array(20)].map((_, i) => (
+                      <button key={i+1} onClick={() => setTableNumber(i + 1)} className={`h-10 rounded-xl border text-[10px] transition-all font-black ${tableNumber === i + 1 ? 'bg-[#fbbf24] text-black border-[#fbbf24]' : 'text-slate-600 border-slate-800 hover:border-slate-500'}`}>{i + 1}</button>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={() => setView('home')} disabled={!userName || !tableNumber} className="w-full bg-[#fbbf24] text-black py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] shadow-xl disabled:opacity-20 active:scale-95 transition-all">Sign In to Azure</button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* HOME VIEW */}
+        {view === 'home' && (
+          <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <header className="bg-black/90 backdrop-blur-2xl sticky top-0 z-40 border-b border-white/5 p-6 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center font-black border border-[#fbbf24] text-[#fbbf24]">{tableNumber}</div>
+                 <div>
+                    <h1 className="text-sm font-serif text-white italic">{userName}</h1>
+                    <button onClick={() => setLang(lang === 'ID' ? 'EN' : 'ID')} className="text-[7px] bg-[#fbbf24] text-black px-2 py-0.5 rounded-full font-black flex items-center gap-1 uppercase">
+                       <Languages className="w-2 h-2"/> {lang}
+                    </button>
+                 </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setView('history')} className="p-4 bg-white/5 rounded-2xl border border-white/10 text-slate-400">
+                  <History className="w-5 h-5" />
+                </button>
+                <button onClick={() => cart.length > 0 && setView('checkout')} className="relative p-4 bg-white/5 rounded-2xl border border-white/10">
+                  <ShoppingCart className="w-5 h-5 text-[#fbbf24]" />
+                  {cart.length > 0 && <span className="absolute -top-2 -right-2 bg-white text-black text-[9px] w-6 h-6 flex items-center justify-center rounded-full font-black">{cart.length}</span>}
+                </button>
+              </div>
+            </header>
+
+            <main className="p-6 max-w-7xl mx-auto pb-48">
+              <div className="mb-10 relative max-w-xl mx-auto">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-[#0f172a] border border-white/5 py-4 pl-14 rounded-full text-[10px] outline-none focus:border-[#fbbf24]" placeholder={t.search} />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredMenu.map((item) => (
+                  <motion.div key={item.id} layout onClick={() => setSelectedItem(item)} className="bg-[#0f172a] rounded-[2.5rem] overflow-hidden border border-white/5 group cursor-pointer hover:border-[#fbbf24]/30 transition-all">
+                    <div className="h-64 relative overflow-hidden">
+                      <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" alt={item.name} />
+                      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1 text-[#fbbf24] border border-white/10">
+                         <Star className="w-3 h-3 fill-current" /> <span className="text-[10px] font-black">{item.rating}</span>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-lg font-serif text-white mb-1">{item.name}</h3>
+                      <p className="text-[#fbbf24] text-[12px] font-black tracking-widest uppercase">IDR {item.price.toLocaleString()}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </main>
+          </motion.div>
+        )}
+
+        {/* CHECKOUT - METODE PEMBAYARAN */}
+        {view === 'checkout' && (
+          <motion.div key="checkout" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-6 max-w-6xl mx-auto flex flex-col items-center">
+            <div className="w-full flex items-center justify-between mb-10">
+              <button onClick={() => setView('home')} className="p-4 bg-white/5 rounded-full text-white"><X className="w-5 h-5" /></button>
+              <h1 className="text-xl font-serif uppercase tracking-[0.3em] text-white">{t.paymentMethod}</h1>
+              <div className="w-12" />
+            </div>
+
+            <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <div className="space-y-4">
+                {PAYMENT_CATEGORIES.map(cat => (
+                  <div key={cat.id} className="bg-[#0f172a] rounded-[2rem] border border-white/5 overflow-hidden">
+                    <button onClick={() => setExpandedCategory(expandedCategory === cat.id ? null : cat.id)} className="w-full p-6 flex items-center justify-between">
+                      <div className="flex items-center gap-5">
+                        <div className={`${cat.color} p-4 rounded-2xl shadow-lg`}>{cat.icon}</div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white">{cat.name}</span>
+                      </div>
+                      <ChevronDown className={`w-5 h-5 transition-transform ${expandedCategory === cat.id ? 'rotate-180' : ''}`} />
+                    </button>
+                    {expandedCategory === cat.id && (
+                      <div className="px-6 pb-6 pt-2 space-y-2">
+                        {cat.options.map(opt => (
+                          <button key={opt.id} onClick={() => setSelectedOption({ ...opt, categoryId: cat.id })} className={`w-full p-5 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${selectedOption?.id === opt.id ? 'bg-[#fbbf24] text-black' : 'bg-black/30 text-slate-600'}`}>{opt.name}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-[#0f172a] p-10 rounded-[3.5rem] border border-white/5 shadow-2xl text-center">
+                 <h2 className="text-center font-serif text-2xl text-[#fbbf24] mb-8 italic">{t.billSummary}</h2>
+                 <div className="space-y-4 mb-8">
+                   {cart.map(i => (
+                     <div key={i.id} className="flex justify-between text-[10px] uppercase border-b border-white/5 pb-2">
+                       <span className="text-slate-400">{i.qty}x {i.name}</span>
+                       <span className="text-white">IDR {(i.price * i.qty).toLocaleString()}</span>
+                     </div>
+                   ))}
+                 </div>
+                 <div className="flex justify-between items-center pt-6 border-t border-white/5 mb-10">
+                   <p className="text-[9px] text-slate-500 uppercase font-black">{t.grandTotal}</p>
+                   <p className="text-3xl font-serif text-[#fbbf24]">IDR {(totalPayment * 1.11).toLocaleString()}</p>
+                 </div>
+                 {selectedOption?.useQRIS && (
+                    <div className="mb-10 p-6 bg-white rounded-3xl inline-block shadow-2xl border-4 border-black">
+                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=TheAzure" className="w-40 h-40" alt="QR" />
+                      <p className="mt-4 text-[9px] font-black text-black tracking-[0.2em]">SCAN TO PAY</p>
+                    </div>
+                 )}
+                 <button onClick={handleCheckout} disabled={!selectedOption} className="w-full bg-[#fbbf24] text-black py-6 rounded-full font-black uppercase text-[10px] tracking-[0.4em] shadow-2xl disabled:opacity-20 transition-all active:scale-95">{t.payNow}</button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* SUCCESS VIEW - WITH TIMER & PROGRESS (YANG ANDA MINTA) */}
+        {view === 'success' && (
+          <motion.div key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen flex items-center justify-center p-6 text-center bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-emerald-900/10 via-[#05080f] to-[#05080f]">
+            <div className="max-w-md w-full">
+              <div className="bg-emerald-500/10 text-emerald-500 p-8 rounded-full inline-block mb-10 border border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+                <CheckCircle2 className="w-16 h-16" />
+              </div>
+              <h1 className="text-3xl font-serif text-white mb-2 italic">Payment Verified</h1>
+              <p className="text-slate-500 text-[10px] uppercase tracking-[0.4em] mb-12">Table #{tableNumber} is being served</p>
+
+              {/* ESTIMATION BOX */}
+              <div className="bg-[#0f172a] p-10 rounded-[3rem] border border-white/5 shadow-2xl mb-10">
+                <div className="flex justify-center gap-12 items-center mb-8">
+                  <div className="text-center">
+                    <p className="text-[8px] text-slate-500 uppercase font-black mb-1">{t.eta}</p>
+                    <div className="flex items-center gap-2 text-[#fbbf24]">
+                      <Clock className="w-4 h-4" />
+                      <p className="text-3xl font-serif">{eta} <span className="text-[10px] uppercase">Min</span></p>
+                    </div>
+                  </div>
+                  <div className="w-px h-10 bg-white/5" />
+                  <div className="text-center">
+                    <p className="text-[8px] text-slate-500 uppercase font-black mb-1">Status</p>
+                    <div className="flex items-center gap-2 text-white text-[10px] font-black uppercase animate-pulse">
+                      <Flame className="w-3 h-3 text-orange-500 fill-orange-500" /> Cooking
+                    </div>
+                  </div>
+                </div>
+
+                {/* PROGRESS TRACKER */}
+                <div className="space-y-8 relative">
+                   <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-white/5 z-0" />
+                   {[Timer, ChefHat, UtensilsCrossed].map((Icon, idx) => (
+                     <div key={idx} className="flex items-center gap-6 relative z-10">
+                        <div className={`p-3 rounded-full transition-all duration-1000 border-2 ${orderStep >= idx ? 'bg-[#fbbf24] text-black border-white shadow-[0_0_20px_rgba(251,191,36,0.3)]' : 'bg-[#0f172a] text-slate-700 border-white/5'}`}>
+                           <Icon className="w-5 h-5" />
+                        </div>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${orderStep >= idx ? 'text-white' : 'text-slate-700'}`}>
+                          {idx === 0 && "Order Received"}
+                          {idx === 1 && "Chef is Cooking"}
+                          {idx === 2 && "Serving to Table"}
+                        </p>
+                     </div>
+                   ))}
+                </div>
+              </div>
+
+              <button onClick={() => {setView('home'); setCart([]); setOrderStep(0); setEta(15);}} className="text-[#fbbf24] text-[10px] font-black uppercase tracking-[0.4em] underline underline-offset-[12px]">{t.back} To Menu</button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* HISTORY VIEW */}
+        {view === 'history' && (
+          <motion.div key="history" initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} className="p-6 max-w-2xl mx-auto min-h-screen">
+             <button onClick={() => setView('home')} className="mb-10 p-4 bg-white/5 rounded-full"><X className="w-5 h-5"/></button>
+             <h2 className="text-3xl font-serif italic text-white mb-8">{t.history}</h2>
+             {orderHistory.length === 0 ? (
+               <div className="text-center py-20 opacity-20"><History className="w-16 h-16 mx-auto mb-4" /><p className="text-[10px] uppercase tracking-widest font-black">No History Yet</p></div>
+             ) : (
+               <div className="space-y-6">
+                 {orderHistory.map(order => (
+                   <div key={order.id} className="bg-[#0f172a] p-8 rounded-[2.5rem] border border-white/5">
+                      <div className="flex justify-between mb-4 pb-2 border-b border-white/5">
+                        <span className="text-[9px] text-slate-500 font-black uppercase">Order #{order.id.toString().slice(-5)}</span>
+                        <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest">Successful</span>
+                      </div>
+                      {order.items.map((it, idx) => (
+                        <div key={idx} className="flex justify-between text-[11px] text-slate-400 mb-1">
+                          <span>{it.qty}x {it.name}</span>
+                          <span className="font-mono">IDR {(it.price * it.qty).toLocaleString()}</span>
+                        </div>
+                      ))}
+                      <div className="mt-4 pt-4 border-t border-white/5 flex justify-between text-white font-serif italic text-xl">
+                        <span>Total Paid</span>
+                        <span>IDR {order.total.toLocaleString()}</span>
+                      </div>
+                   </div>
+                 ))}
+               </div>
+             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DETAIL MODAL WITH PAIRING */}
+      <AnimatePresence>
+        {selectedItem && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
+             <motion.div initial={{ scale: 0.9, y: 50 }} animate={{ scale: 1, y: 0 }} className="bg-[#0f172a] w-full max-w-xl rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl">
+                <div className="h-64 relative">
+                   <img src={selectedItem.image} className="w-full h-full object-cover" alt="" />
+                   <button onClick={() => setSelectedItem(null)} className="absolute top-6 right-6 p-3 bg-black/60 rounded-full text-white"><X className="w-4 h-4"/></button>
+                </div>
+                <div className="p-8">
+                   <h2 className="text-3xl font-serif text-white mb-2 italic text-center">{selectedItem.name}</h2>
+                   <p className="text-slate-500 text-[10px] text-center italic mb-8 px-4 leading-relaxed">"{selectedItem.description}"</p>
+                   
+                   {selectedItem.pairing && (
+                     <div className="bg-white/5 p-4 rounded-2xl mb-8 border border-white/5 flex items-center gap-4">
+                        <div className="w-10 h-10 bg-[#fbbf24]/10 rounded-xl flex items-center justify-center text-[#fbbf24]"><Coffee className="w-5 h-5" /></div>
+                        <div>
+                           <p className="text-[7px] text-slate-500 uppercase font-black mb-1">{t.pairing}</p>
+                           <p className="text-[10px] text-white font-bold italic">{selectedItem.pairing}</p>
+                        </div>
+                     </div>
+                   )}
+
+                   <div className="mb-8">
+                      <label className="text-[8px] text-slate-500 uppercase font-black mb-2 block">{t.specialRequest}</label>
+                      <textarea value={specialNote} onChange={(e) => setSpecialNote(e.target.value)} className="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-[10px] text-white outline-none focus:border-[#fbbf24] h-20 resize-none transition-all" placeholder="Catatan untuk chef..." />
+                   </div>
+
+                   <button onClick={() => addToCart(selectedItem)} className="w-full bg-[#fbbf24] text-black py-5 rounded-full font-black uppercase text-[10px] tracking-[0.4em] shadow-xl transition-all active:scale-95">
+                      {t.addToOrder}
+                   </button>
+                </div>
+             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        ::-webkit-scrollbar { display: none; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+        body { background: #05080f; cursor: default; }
+      `}} />
+    </div>
+  );
+}
